@@ -124,6 +124,26 @@ def parse_value_from_text(raw: str, template_value, key: str):
     # 特殊处理窗口字段
     if key in ("Q_window_frame", "A_window_frame"):
         return frames_from_input(raw, template_value)
+    # 特殊处理 answer：允许单字符串或多条（分号/换行分隔）或 JSON 数组
+    if key == 'answer':
+        if raw.startswith('['):
+            try:
+                val = json.loads(raw)
+                return val
+            except Exception:
+                pass
+        # 分号或换行视为多项
+        if ';' in raw or '\n' in raw:
+            parts = []
+            for seg in raw.replace('\r', '').split('\n'):
+                parts.extend([p.strip() for p in seg.split(';') if p.strip()])
+            return parts
+        # 若模板本为列表，则按列表解析（逗号分隔）
+        if isinstance(template_value, list):
+            items = [s.strip() for s in raw.split(',') if s.strip()]
+            return items
+        # 默认单字符串
+        return raw
     # 直接尝试 JSON 解析（允许复杂结构）
     if raw.startswith('{') or raw.startswith('['):
         try:
@@ -453,10 +473,49 @@ class App(tk.Tk):
             if key in ("task_L1", "task_L2", "annotation_id"):
                 continue
             ttk.Label(self.form_container, text=key).grid(row=row, column=0, sticky=tk.E, padx=4, pady=4)
+            # 对 ObjectsSpatialRelationships 的 bounding_box 提供优雅输入（两个对象的独立输入框）
+            if key == 'bounding_box' and self.l2_combo.get() == 'ObjectsSpatialRelationships':
+                bb_frame = ttk.Frame(self.form_container)
+                bb_frame.grid(row=row, column=1, sticky=tk.W, padx=4, pady=4)
+
+                def build_bb_column(parent, title):
+                    col = ttk.Labelframe(parent, text=title)
+                    col.pack(side=tk.LEFT, padx=6)
+                    # label
+                    r1 = ttk.Frame(col); r1.pack(anchor=tk.W, pady=2)
+                    ttk.Label(r1, text="label:").pack(side=tk.LEFT)
+                    ent_label = ttk.Entry(r1, width=18)
+                    ent_label.pack(side=tk.LEFT, padx=4)
+                    # box 4 ints
+                    r2 = ttk.Frame(col); r2.pack(anchor=tk.W, pady=2)
+                    ttk.Label(r2, text="box:").pack(side=tk.LEFT)
+                    e1 = ttk.Entry(r2, width=5); e2 = ttk.Entry(r2, width=5); e3 = ttk.Entry(r2, width=5); e4 = ttk.Entry(r2, width=5)
+                    for i, e in enumerate((e1, e2, e3, e4)):
+                        e.pack(side=tk.LEFT)
+                        if i < 3:
+                            ttk.Label(r2, text=",").pack(side=tk.LEFT)
+                    return ent_label, [e1, e2, e3, e4]
+
+                la1, b1 = build_bb_column(bb_frame, "对象1")
+                la2, b2 = build_bb_column(bb_frame, "对象2")
+
+                # 保存复合控件引用，供保存时读取
+                self.field_widgets[key] = (("composite", {"label1": la1, "box1": b1, "label2": la2, "box2": b2}), default)
+
+                # 提示
+                hint = ttk.Label(self.form_container, text="请填写两个对象：每个包含 label 与 box(四个整数)", foreground="#666")
+                hint.grid(row=row+1, column=1, sticky=tk.W, padx=4, pady=(0,6))
+                row += 2
+                continue
             # 选择控件：长文本/JSON 用 Text，其他用 Entry
             widget = None
-            if isinstance(default, (list, dict)) or key in ("Q_window_frame", "A_window_frame"):
+            use_text = isinstance(default, (list, dict)) or key in ("Q_window_frame", "A_window_frame") or key == 'answer'
+            if use_text:
                 widget = tk.Text(self.form_container, width=60, height=3)
+                # 针对特定字段提供默认结构或提示（不影响保存的有效性）
+                if key == 'answer':
+                    # 不预填内容，避免误保存；仅放提示标签
+                    pass
             else:
                 widget = ttk.Entry(self.form_container, width=60)
                 if isinstance(default, (int, float)):
@@ -466,6 +525,10 @@ class App(tk.Tk):
             # 在文本框下方增加提示标签（不写入内容本身）
             if key in ("Q_window_frame", "A_window_frame"):
                 hint = ttk.Label(self.form_container, text="示例: 10,20   或   10,20; 30,40", foreground="#666")
+                hint.grid(row=row+1, column=1, sticky=tk.W, padx=4, pady=(0,6))
+                row += 2
+            elif key == 'answer':
+                hint = ttk.Label(self.form_container, text="支持：单条答案；或多条以分号/换行分隔；或直接粘贴JSON数组", foreground="#666")
                 hint.grid(row=row+1, column=1, sticky=tk.W, padx=4, pady=(0,6))
                 row += 2
             else:
@@ -490,11 +553,82 @@ class App(tk.Tk):
         # 先收集内容字段
         content_fields = {}
         for key, (widget, default) in self.field_widgets.items():
+            # 处理复合 bounding_box（ObjectsSpatialRelationships）
+            if key == 'bounding_box' and isinstance(widget, tuple) and widget[0] == 'composite':
+                sub = widget[1]
+                lab1 = sub['label1'].get().strip()
+                lab2 = sub['label2'].get().strip()
+                b1_vals = [e.get().strip() for e in sub['box1']]
+                b2_vals = [e.get().strip() for e in sub['box2']]
+                # 暂不在此强制转 int，留待统一校验阶段处理
+                try:
+                    b1_list = [int(x) if x != '' else x for x in b1_vals]
+                except Exception:
+                    b1_list = b1_vals
+                try:
+                    b2_list = [int(x) if x != '' else x for x in b2_vals]
+                except Exception:
+                    b2_list = b2_vals
+                content_fields[key] = [
+                    {"label": lab1, "box": b1_list},
+                    {"label": lab2, "box": b2_list}
+                ]
+                continue
             if isinstance(widget, tk.Text):
                 raw = widget.get('1.0', tk.END).strip()
             else:
                 raw = widget.get().strip()
             content_fields[key] = parse_value_from_text(raw, default, key)
+
+        # 针对 ObjectsSpatialRelationships：强制字段形状与类型
+        if self.l2_combo.get() == 'ObjectsSpatialRelationships':
+            # timestamp_frame 必须为整数
+            if 'timestamp_frame' not in content_fields:
+                messagebox.showerror("错误", "缺少字段：timestamp_frame。")
+                return
+            try:
+                content_fields['timestamp_frame'] = int(content_fields['timestamp_frame'])
+            except Exception:
+                messagebox.showerror("错误", "timestamp_frame 必须为整数。")
+                return
+
+            # answer 统一为单字符串（若为多条则合并为一条，以中文分号连接）
+            if 'answer' in content_fields:
+                ans_val = content_fields['answer']
+                if isinstance(ans_val, list):
+                    content_fields['answer'] = '；'.join(str(s) for s in ans_val)
+                elif isinstance(ans_val, (dict, int, float)):
+                    content_fields['answer'] = str(ans_val)
+                else:
+                    # 字符串保持不变
+                    pass
+
+            # bounding_box 必须为两个对象，且每个对象含 label 与 box(4个整数)
+            bb = content_fields.get('bounding_box')
+            if not isinstance(bb, list) or len(bb) != 2:
+                messagebox.showerror("错误", "bounding_box 必须是包含两个对象的列表。")
+                return
+            def _check_item(item):
+                if not isinstance(item, dict):
+                    return False
+                label = item.get('label')
+                box = item.get('box')
+                if not isinstance(label, str) or not label.strip():
+                    return False
+                if not isinstance(box, list) or len(box) != 4:
+                    return False
+                try:
+                    coords = [int(x) for x in box]
+                except Exception:
+                    return False
+                item['label'] = label.strip()
+                item['box'] = coords
+                return True
+            if not (_check_item(bb[0]) and _check_item(bb[1])):
+                messagebox.showerror("错误", "bounding_box 的每个对象必须包含 label 与 box(4个整数)。")
+                return
+            # 规范化后的值写回
+            content_fields['bounding_box'] = bb
         # 构造有序 annotation：annotation_id -> task -> 其他字段
         ann = {}
         # 分配 annotation_id
