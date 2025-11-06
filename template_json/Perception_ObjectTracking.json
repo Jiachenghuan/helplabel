@@ -1,0 +1,16 @@
+{
+    "annotation_id": "1",
+    "task_L1": "Perception",
+    "task_L2": "Object_Tracking",
+    "Q_window_frame": [
+        10,
+        20
+    ],
+    "query": "跟踪那个穿着红色10号球衣向前跑的球员。",
+    "first_bounding_box": [
+        934,
+        452,
+        1041,
+        667
+    ]
+}

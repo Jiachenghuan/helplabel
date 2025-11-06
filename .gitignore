@@ -1,0 +1,36 @@
+# Keep Dataset directory but ignore its contents
+Dataset/**
+!Dataset/
+!Dataset/.gitkeep
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+*.env
+
+# Editors/IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build/packaging artifacts
+build/
+dist/
+*.egg-info/
+*.spec
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Logs
+*.log

@@ -1,0 +1,18 @@
+{
+    "annotation_id": "6",
+    "task_L1": "Understanding",
+    "task_L2": "Continuous_Events_Caption",
+    "Q_window_frame": [
+        15,
+        20
+    ],
+    "question": "请连续不断地描述视频中{}秒到{}秒之间发生的事件，并输出对应的时间区间。",
+    "A_window_frame": [
+        "15-18",
+        "19-20"
+    ],
+    "answer": [
+        "进攻队员成功突破",
+        "进攻队员成功得分"
+    ]
+}

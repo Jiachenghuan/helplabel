@@ -1,0 +1,11 @@
+{
+    "annotation_id": "3",
+    "task_L1": "Understanding",
+    "task_L2": "Scoreboard_Multiple",
+    "question": "请根据记分板信息，描述第二轮与第一轮相比排名上的变化。",
+    "Q_window_frame": [
+        "10-13",
+        "14-17"
+    ],
+    "answer": "根据记分板，法国由第二名变成了第一名，英国由第一名变成了第二名，其他国家的排名没有改变。"
+}

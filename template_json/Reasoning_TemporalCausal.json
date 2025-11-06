@@ -1,0 +1,15 @@
+{
+    "annotation_id": "9",
+    "task_L1": "Reasoning",
+    "task_L2": "Temporal_Causal",
+    "Q_window_frame": [
+        45,
+        50
+    ],
+    "question": "在视频的最后一次进攻中，为什么这次进攻失败了？",
+    "A_window_frame": [
+        42,
+        44
+    ],
+    "answer": "因为在进攻发起时，10号球员的传球出现了失误，直接被对方抢断。"
+}

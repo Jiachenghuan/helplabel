@@ -1,0 +1,18 @@
+{
+    "sport": "3x3_Basketball",
+    "event": "Men",
+    "video_id": "1",
+    "info": "该视频的简介",
+    "video_metadata": {
+        "duration_sec": 125.5,
+        "fps": 30,
+        "total_frames": 3765,
+        "resolution": [
+            1920,
+            1080
+        ] 
+    },
+    "annotations": [
+        
+    ]
+}

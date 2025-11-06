@@ -1,0 +1,14 @@
+{
+    "annotation_id": "3",
+    "task_L1": "Understanding",
+    "task_L2": "Scoreboard_Single",
+    "timestamp_frame": 100,
+    "question": "请根据记分板信息，说明目前谁是第一名。",
+    "answer": "根据记分板，目前排在第一名的是Lakers队。",
+    "bounding_box": [
+        934,
+        452,
+        1041,
+        667
+    ]
+}

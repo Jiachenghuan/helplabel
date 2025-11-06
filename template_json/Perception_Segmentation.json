@@ -1,0 +1,10 @@
+{
+    "annotation_id": "2",
+    "task_L1": "Perception",
+    "task_L2": "Object_Segmentation",
+    "Q_window_frame": [
+        10,
+        20
+    ],
+    "query": "分割那个穿着红色10号球衣向前跑的球员。"
+}

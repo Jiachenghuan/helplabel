@@ -1,0 +1,20 @@
+{
+    "annotation_id": "5",
+    "task_L1": "Understanding",
+    "task_L2": "Continuous_Actions_Caption",
+    "Q_window_frame": [
+        10,
+        20
+    ],
+    "question": "请连续不断地描述视频中{}秒到{}秒之间控球球员的动作，并输出对应的时间区间。",
+    "A_window_frame": [
+        "10-13",
+        "14-17",
+        "18-20"
+    ],
+    "answer": [
+        "向左侧带球突破",
+        "急停变向，晃过防守队员",
+        "起跳投篮"
+    ]
+}

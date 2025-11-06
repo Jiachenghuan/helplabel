@@ -1,0 +1,15 @@
+{
+    "annotation_id": "7",
+    "task_L1": "Reasoning",
+    "task_L2": "Spatial_Imagination",
+    "Q_window_frame": [
+        45,
+        50
+    ],
+    "question": "请问在门将眼中，球是从左边还是右边飞来？",
+    "A_window_frame": [
+        42,
+        44
+    ],
+    "answer": "左边。"
+}

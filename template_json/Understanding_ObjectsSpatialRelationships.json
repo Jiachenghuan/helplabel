@@ -1,0 +1,28 @@
+{
+    "annotation_id": "4",
+    "task_L1": "Understanding",
+    "task_L2": "Objects_Spatial_Relationships",
+    "timestamp_frame": 100,
+    "question": "穿红色球衣的球员（球员A）在穿蓝色球衣的球员（球员B）的哪个方向？",
+    "answer": "穿红色球衣的球员（球员A）在穿蓝色球衣的球员（球员B）的左侧。",
+    "bounding_box": [
+        {
+            "label": "球员A",
+            "box": [
+                934,
+                452,
+                1041,
+                667
+            ]
+        },
+        {
+            "label": "球员B",
+            "box": [
+                934,
+                452,
+                1041,
+                667
+            ]
+        }
+    ]
+}

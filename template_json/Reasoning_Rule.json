@@ -1,0 +1,15 @@
+{
+    "annotation_id": "8",
+    "task_L1": "Reasoning",
+    "task_L2": "Rule",
+    "Q_window_frame": [
+        45,
+        50
+    ],
+    "question": "蓝队前锋的动作是否构成犯规？为什么？",
+    "A_window_frame": [
+        42,
+        44
+    ],
+    "answer": "构成了，其用手触球。"
+}

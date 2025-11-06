@@ -1,0 +1,15 @@
+{ 
+    "annotation_id": "10",
+    "task_L1": "Special",
+    "task_L2": "AI_Coach",
+    "Q_window_frame": [
+        45,
+        50
+    ],
+    "question": "在视频的最后一次进攻中（{}秒），红队如何避免这次进攻失败？",
+    "A_window_frame": [
+        42,
+        44
+    ],
+    "answer": "10号球员的传球再稍作稳定，队友主动迎球。"
+}
