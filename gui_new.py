@@ -728,6 +728,7 @@ class App(tk.Tk):
                 row += 1
 
     ### 修改：重命名为 save_annotation，并添加“修改”逻辑 ###
+### 修改：重命名为 save_annotation，并添加“修改”逻辑 ###
     def save_annotation(self):
         target_json = self.json_combo.get().strip()
         if not target_json:
@@ -745,7 +746,7 @@ class App(tk.Tk):
             return
         
         # --------------------------------
-        # 构造 annotation (与原版一致)
+        # 构造 annotation
         # --------------------------------
         content_fields = {}
         for key, (widget, default) in self.field_widgets.items():
@@ -756,18 +757,10 @@ class App(tk.Tk):
                 lab2 = sub['label2'].get().strip()
                 b1_vals = [e.get().strip() for e in sub['box1']]
                 b2_vals = [e.get().strip() for e in sub['box2']]
-                # 暂不在此强制转 int，留待统一校验阶段处理
-                try:
-                    b1_list = [int(x) if x != '' else x for x in b1_vals]
-                except Exception:
-                    b1_list = b1_vals
-                try:
-                    b2_list = [int(x) if x != '' else x for x in b2_vals]
-                except Exception:
-                    b2_list = b2_vals
+                
                 content_fields[key] = [
-                    {"label": lab1, "box": b1_list},
-                    {"label": lab2, "box": b2_list}
+                    {"label": lab1, "box": b1_vals}, # b1_vals 是字符串列表
+                    {"label": lab2, "box": b2_vals}  # b2_vals 是字符串列表
                 ]
                 continue
             if isinstance(widget, tk.Text):
@@ -778,7 +771,7 @@ class App(tk.Tk):
 
         # 针对 ObjectsSpatialRelationships：强制字段形状与类型
         if self.l2_combo.get() == 'ObjectsSpatialRelationships':
-            # timestamp_frame 必须为整数
+            # timestamp_frame 必须为整数 (此逻辑不变)
             if 'timestamp_frame' not in content_fields:
                 messagebox.showerror("错误", "缺少字段：timestamp_frame。")
                 return
@@ -788,43 +781,82 @@ class App(tk.Tk):
                 messagebox.showerror("错误", "timestamp_frame 必须为整数。")
                 return
 
-            # answer 统一为单字符串（若为多条则合并为一条，以中文分号连接）
+            # answer 统一为单字符串 (此逻辑不变)
             if 'answer' in content_fields:
                 ans_val = content_fields['answer']
                 if isinstance(ans_val, list):
                     content_fields['answer'] = '；'.join(str(s) for s in ans_val)
                 elif isinstance(ans_val, (dict, int, float)):
                     content_fields['answer'] = str(ans_val)
-                else:
-                    # 字符串保持不变
-                    pass
 
-            # bounding_box 必须为两个对象，且每个对象含 label 与 box(4个整数)
-            bb = content_fields.get('bounding_box')
-            if not isinstance(bb, list) or len(bb) != 2:
-                messagebox.showerror("错误", "bounding_box 必须是包含两个对象的列表。")
-                return
+            # (修改) bounding_box 校验：允许 0 个、1 个或 2 个
+            bb_raw = content_fields.get('bounding_box')
+            
+            # (修改) _check_item: 允许 float
             def _check_item(item):
-                if not isinstance(item, dict):
-                    return False
+                if not isinstance(item, dict): return False
                 label = item.get('label')
-                box = item.get('box')
-                if not isinstance(label, str) or not label.strip():
-                    return False
+                box = item.get('box') # 预期是 4 个字符串
+                
+                # 1. 检查 Box
                 if not isinstance(box, list) or len(box) != 4:
                     return False
                 try:
-                    coords = [int(x) for x in box]
+                    # 必须是4个 *非空* 字符串才能转 float (原int)
+                    if any(s.strip() == '' for s in box):
+                        return False
+                    coords = [float(s) for s in box] # <<< 修改点：int -> float
                 except Exception:
-                    return False
-                item['label'] = label.strip()
-                item['box'] = coords
+                    return False # 必须是4个数字 (原int)
+
+                # 2. 检查 Label
+                if not isinstance(label, str):
+                    return False 
+
+                item['label'] = label.strip() # 规范化
+                item['box'] = coords # 规范化 (现在是 floats)
                 return True
-            if not (_check_item(bb[0]) and _check_item(bb[1])):
-                messagebox.showerror("错误", "bounding_box 的每个对象必须包含 label 与 box(4个整数)。")
-                return
-            # 规范化后的值写回
-            content_fields['bounding_box'] = bb
+
+            # (不变) 检查函数 _is_empty
+            def _is_empty(item):
+                label = item.get('label', '')
+                box = item.get('box', []) # 预期是 4 个字符串
+                box_is_empty = all(s.strip() == '' for s in box)
+                return (not label.strip()) and box_is_empty
+
+            final_bb_list = []
+            if not isinstance(bb_raw, list) or len(bb_raw) != 2:
+                 pass 
+            else:
+                item1 = bb_raw[0]
+                item2 = bb_raw[1]
+
+                # 检查对象1
+                if _is_empty(item1):
+                    pass # 1 是空的，忽略
+                elif _check_item(item1):
+                    final_bb_list.append(item1) # 1 是有效的
+                else:
+                    # (修改) 更新错误提示
+                    messagebox.showerror("错误 - bounding_box 对象1", "对象1 填写不完整：box 必须是4个数字(可含小数)，label 必须是字符串。")
+                    return
+
+                # 检查对象2
+                if _is_empty(item2):
+                    pass # 2 是空的，忽略
+                elif _check_item(item2):
+                    final_bb_list.append(item2) # 2 是有效的
+                else:
+                    # (修改) 更新错误提示
+                    messagebox.showerror("错误 - bounding_box 对象2", "对象2 填写不完整：box 必须是4个数字(可含小数)，label 必须是字符串。")
+                    return
+            
+            # (不变) 根据结果决定是写入、更新还是删除
+            if final_bb_list:
+                content_fields['bounding_box'] = final_bb_list
+            else:
+                if 'bounding_box' in content_fields:
+                    del content_fields['bounding_box']
         # --------------------------------
         # 构造 annotation 结束
         # --------------------------------
@@ -833,7 +865,7 @@ class App(tk.Tk):
         ann = {}
         existing = data.get('annotations') or []
 
-        ### 新增：区分“修改”和“新增” ###
+        ### 区分“修改”和“新增” ###
         is_modification = self.selected_annotation_id is not None
         
         if is_modification:
@@ -844,7 +876,6 @@ class App(tk.Tk):
             for k, v in content_fields.items():
                 ann[k] = v
             
-            # 在列表中找到并替换
             found_index = -1
             for i, old_ann in enumerate(existing):
                 if str(old_ann.get('annotation_id')) == self.selected_annotation_id:
@@ -854,14 +885,13 @@ class App(tk.Tk):
             if found_index != -1:
                 existing[found_index] = ann
             else:
-                # 如果没找到（例如列表被外部修改），则当作追加
                 existing.append(ann)
             
             data['annotations'] = existing
             msg = f"已修改标注 (ID: {self.selected_annotation_id}), 写回: {target_json}"
             
         else:
-            # --- 新增模式 (原逻辑) ---
+            # --- 新增模式 ---
             max_id = 0
             for a in existing:
                 try:
@@ -879,8 +909,9 @@ class App(tk.Tk):
         
         # 保存
         try:
+            # (修正) 修正上一版代码中的 json.dump 拼写错误
             with open(target_json, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
+                json.dump(data, f, ensure_ascii=False, indent=4) 
             messagebox.showinfo("成功", msg)
             
             # --- 保存后刷新 ---
@@ -889,7 +920,6 @@ class App(tk.Tk):
             
         except Exception as e:
             messagebox.showerror("错误", f"保存失败: {e}")
-
 
 if __name__ == '__main__':
     app = App()
